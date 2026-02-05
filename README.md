@@ -140,38 +140,41 @@ If you cannot use Docker, follow these steps:
    - **API Root**: `http://localhost:8000`
    - **Swagger Documentation**: `http://localhost:8000/docs`
 
-## API Usage
+## 6. API Endpoints
 
-You can use the Swagger UI (`/docs`) or tools like `curl` / Postman.
+The backend exposes two primary endpoints for interaction:
 
-### 1. Upload a Document (Context)
-Upload a file to a specific session.
+### 1. Upload Document (`POST /api/upload`)
+Uploads a file (PDF or Text) to be used as context for a specific session.
 
-**Endpoint**: `POST /api/upload`
-**Form Data**:
-- `file`: (File) The PDF or Text file.
-- `session_id`: (String) Unique identifier for the session (e.g., "session-123").
+- **URL**: `/api/upload`
+- **Method**: `POST`
+- **Content-Type**: `multipart/form-data`
+- **Parameters**:
+    - `file`: The document file (Binary).
+    - `session_id`: Unique string to identify the conversation session.
+- **Returns**: JSON confirmation of upload.
 
-```bash
-curl -X 'POST' \
-  'http://localhost:8000/api/upload' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: multipart/form-data' \
-  -F 'file=@/path/to/your/document.pdf' \
-  -F 'session_id=session-123'
-```
+### 2. Chat (`POST /api/chat`)
+Sends a message to the AI. If documents were uploaded to the same `session_id`, the AI uses them as context (RAG).
 
-### 2. Chat with the Bot
-Send a message. If you uploaded documents to the same `session_id`, the bot will use them as context.
-
-**Endpoint**: `POST /api/chat`
-**JSON Body**:
-```json
-{
-  "query": "What does the document say about X?",
-  "session_id": "session-123"
-}
-```
+- **URL**: `/api/chat`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+- **Body**:
+    ```json
+    {
+      "query": "What is the summary of the document?",
+      "session_id": "session-123"
+    }
+    ```
+- **Returns**: JSON with the AI's response.
+    ```json
+    {
+      "response": "The document summarizes...",
+      "session_id": "session-123"
+    }
+    ```
 
 ## 7. Future Optimizations
 
