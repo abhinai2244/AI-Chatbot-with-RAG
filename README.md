@@ -111,9 +111,6 @@ The system is built using:
 - **AI Framework**: LangChain
 - **LLM Providers**: Google Gemini (Default) or OpenAI
 
-### Architecture Diagram
-![Architecture](architecture.mmd)
-
 ## 3. Local Setup (Manual / Non-Docker)
 If you cannot use Docker, follow these steps:
 

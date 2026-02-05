@@ -187,6 +187,9 @@ async def process_chat(session_id: str, user_query: str, db: AsyncSession, backg
         # ------------------------------------------------------------------
         # 5. Build System Prompt & Messages
         # ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # 5. Build System Prompt & Messages
+        # ------------------------------------------------------------------
         messages = []
         
         system_prompt = f"""You are an intelligent AI Assistant for the 'Atlantis' system.
@@ -204,8 +207,17 @@ async def process_chat(session_id: str, user_query: str, db: AsyncSession, backg
         {session_summary}
         """
         
-        # Add System Message
-        messages.append(SystemMessage(content=system_prompt))
+        # Check if model is Gemma (doesn't support SystemMessage/Developer Metadata)
+        is_gemma = "gemma" in settings.GEMINI_MODEL.lower()
+        
+        if is_gemma:
+            # For Gemma, we prepend instructions to the user's message
+            # Or make it the first HumanMessage.
+            # Here we will add it as the first message, typed as a HumanMessage.
+            messages.append(HumanMessage(content=f"SYSTEM INSTRUCTIONS:\n{system_prompt}"))
+        else:
+            # For standard Gemini/OpenAI, use SystemMessage
+            messages.append(SystemMessage(content=system_prompt))
         
         # Add History (Short-term Memory)
         for msg in history_records:
