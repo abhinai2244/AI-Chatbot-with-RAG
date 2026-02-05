@@ -29,8 +29,8 @@ This is a backend API for an AI Chatbot that supports Retrieval Augmented Genera
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
-   cd <repository-directory>
+   git clone https://github.com/abhinai2244/AI-Chatbot-with-RAG.git
+   cd AI-Chatbot-with-RAG
    ```
 
 2. **Environment Configuration**:
@@ -54,8 +54,8 @@ This project is a production-ready AI Chatbot Backend designed to be **LLM-Agnos
 
 ### Step 1: Clone & Configure
 ```bash
-git clone <this-repo-url>
-cd ATLANTIS
+git clone https://github.com/abhinai2244/AI-Chatbot-with-RAG.git
+cd AI-Chatbot-with-RAG
 # Copy the example env file
 cp .env.example .env
 ```
