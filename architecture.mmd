@@ -1,0 +1,23 @@
+graph TD
+    User[User/Client] -->|JSON Request| API[FastAPI Backend]
+    
+    subgraph "Application Layer"
+        API -->|/chat| ChatService[Chat Service]
+        API -->|/upload| FileService[File Service]
+        ChatService -->|Background Task| SummaryService[Summary Updater]
+    end
+    
+    subgraph "Data Layer"
+        ChatService -->|Store History| Messages[Message Table]
+        Messages -->|Indexed Access| ChatService
+        SummaryService -->|Update Summary| SessionTbl[Session Table]
+        FileService -->|Store Metadata| Documents[Document Table]
+        FileService -->|Store Embeddings| VectorStore[DocumentChunk Table]
+        ChatService -->|Vector Search| VectorStore
+    end
+    
+    subgraph "External Services"
+        ChatService -->|Completion| LLM[LLM (OpenAI)]
+        SummaryService -->|Summarization| LLM
+        FileService -->|Embeddings| LLM
+    end
