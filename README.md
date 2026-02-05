@@ -42,13 +42,116 @@ This is a backend API for an AI Chatbot that supports Retrieval Augmented Genera
    ```ini
    OPENAI_API_KEY=sk-...
    ```
-   You can leave the Database settings as default if running via Docker.
+   You can leave the# Atlantis AI Chatbot Backend
 
-3. **Start the Application**:
-   Run the following command to build and start the backend and database containers.
+## 1. Overview
+This project is a production-ready AI Chatbot Backend designed to be **LLM-Agnostic** (supporting both OpenAI and Google Gemini). It features **Retrieval Augmented Generation (RAG)**, **Session Management**, **Long-term Memory (Summarization)**, and **Vector Search** using PostgreSQL + pgvector.
+
+## 2. Architecture
+The system is built using:
+- **Backend Framework**: FastAPI (Async)
+- **Database**: PostgreSQL 16
+- **Vector Search**: pgvector extension
+- **AI Framework**: LangChain
+- **LLM Providers**: Google Gemini (Default) or OpenAI
+
+### Architecture Diagram
+![Architecture](architecture.mmd)
+
+## 3. Features
+- **Project Structure**: Clean, modular code organization.
+- **RAG Implementation**: Upload PDFs/Text files -> Chunking -> Embedding -> Vector Search.
+- **Session Management**: Each conversation is isolated by `session_id`.
+- **Memory**: Maintains conversation history + auto-updating summaries for infinite context.
+- **Configurable**: Switch LLMs via `.env`.
+- **Dockerized**: One-command startup.
+
+## 4. Prerequisites
+- Docker & Docker Compose
+- API Key (Google AI Studio or OpenAI)
+
+## 5. Local Setup & Execution
+
+### Option A: Using Docker (Recommended)
+This is the easiest way to run the application as it handles the database and vector extension automatically.
+
+1. **Clone the repository**
+   ```bash
+   git clone <repo-url>
+   cd ATLANTIS
+   ```
+
+2. **Configure Environment**
+   Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+   Open `.env` and add your API Keys:
+   ```env
+   LLM_PROVIDER=gemini
+   GOOGLE_API_KEY=your_google_api_key
+   ```
+
+3. **Start Application**
    ```bash
    docker-compose up --build
    ```
+   - The backend will be available at: `http://localhost:8000`
+   - Swagger UI docs: `http://localhost:8000/docs`
+
+### Option B: Local Python Setup (Manual)
+If you prefer running Python locally (requires a running Postgres instance with pgvector).
+
+1. **Create Virtual Environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Setup Database**
+   - Ensure PostgreSQL is running.
+   - Install `pgvector` extension in your database.
+   - Update `DATABASE_URL` in `.env`.
+
+4. **Run Server**
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+## 6. API Usage Examples
+
+### 1. Upload a Document
+**Endpoint**: `POST /api/upload`
+```bash
+curl -X POST "http://localhost:8000/api/upload" \
+     -H "accept: application/json" \
+     -H "Content-Type: multipart/form-data" \
+     -F "file=@/path/to/document.pdf" \
+     -F "session_id=user-session-123"
+```
+
+### 2. Chat with AI
+**Endpoint**: `POST /api/chat`
+```bash
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "accept: application/json" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "query": "What does the uploaded document say about X?",
+       "session_id": "user-session-123"
+     }'
+```
+
+## 7. Troubleshooting
+
+- **Database Connection Error**: Ensure Docker is running. If running locally, check `DATABASE_URL`.
+- **pgvector Error**: Ensure the docker image usage `pgvector/pgvector:pg16`.
+- **LLM Error**: Verify your `GOOGLE_API_KEY` or `OPENAI_API_KEY` is correct in `.env`.
    *Note: This might take a few minutes for the first build.*
 
 4. **Verify Running**:

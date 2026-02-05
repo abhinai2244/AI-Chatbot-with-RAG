@@ -1,23 +1,59 @@
 graph TD
-    User[User/Client] -->|JSON Request| API[FastAPI Backend]
-    
-    subgraph "Application Layer"
-        API -->|/chat| ChatService[Chat Service]
-        API -->|/upload| FileService[File Service]
-        ChatService -->|Background Task| SummaryService[Summary Updater]
+    subgraph Client
+        User[User]
+        File[Document (PDF/TXT)]
     end
-    
-    subgraph "Data Layer"
-        ChatService -->|Store History| Messages[Message Table]
-        Messages -->|Indexed Access| ChatService
-        SummaryService -->|Update Summary| SessionTbl[Session Table]
-        FileService -->|Store Metadata| Documents[Document Table]
-        FileService -->|Store Embeddings| VectorStore[DocumentChunk Table]
-        ChatService -->|Vector Search| VectorStore
+
+    subgraph "Backend (FastAPI)"
+        API[API Endpoints]
+        ChatServ[Chat Service]
+        FileServ[File Service]
+        RAG[RAG Logic]
+        history[History Manager]
+        summary[Summary & Memory]
     end
-    
-    subgraph "External Services"
-        ChatService -->|Completion| LLM[LLM (OpenAI)]
-        SummaryService -->|Summarization| LLM
-        FileService -->|Embeddings| LLM
+
+    subgraph "AI / LLM Layers"
+        Router{LLM Router}
+        Gemini[Google Gemini]
+        OpenAI[OpenAI GPT]
+        Embed[Embeddings Service]
     end
+
+    subgraph "Data Persistence"
+        DB[(PostgreSQL)]
+        pgvector[(pgvector Extension)]
+    end
+
+    %% Flows
+    User -->|Send Message| API
+    User -->|Upload File| API
+
+    API -->|Route: /chat| ChatServ
+    API -->|Route: /upload| FileServ
+
+    FileServ -->|Extract Text| File
+    FileServ -->|Chunk Text| Embed
+    Embed -->|Generate Vectors| pgvector
+
+    ChatServ -->|1. Get History| history
+    ChatServ -->|2. Get Summary| summary
+    ChatServ -->|3. Retrieve Context| pgvector
+    
+    pgvector -->|Return Relevant Chunks| ChatServ
+    
+    ChatServ -->|4. Construct Prompt| Router
+    
+    Router -->|If PROVIDER=gemini| Gemini
+    Router -->|If PROVIDER=openai| OpenAI
+    
+    Gemini -->|Response| ChatServ
+    OpenAI -->|Response| ChatServ
+    
+    ChatServ -->|5. Save History| DB
+    ChatServ -->|6. Update Summary (Async)| summary
+    
+    summary -->|Summarize| Router
+    history -->|Read/Write| DB
+    
+    linkStyle default stroke-width:2px,fill:none,stroke:#333;
