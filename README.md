@@ -47,6 +47,62 @@ This is a backend API for an AI Chatbot that supports Retrieval Augmented Genera
 ## 1. Overview
 This project is a production-ready AI Chatbot Backend designed to be **LLM-Agnostic** (supporting both OpenAI and Google Gemini). It features **Retrieval Augmented Generation (RAG)**, **Session Management**, **Long-term Memory (Summarization)**, and **Vector Search** using PostgreSQL + pgvector.
 
+---
+
+## 🏗️ Reviewer Guide / Quick Start
+*Steps for the evaluation team to run and test the project.*
+
+### Step 1: Clone & Configure
+```bash
+git clone <this-repo-url>
+cd ATLANTIS
+# Copy the example env file
+cp .env.example .env
+```
+Inside `.env`, populate your **Google API Key**:
+```ini
+GOOGLE_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.5-flash
+# Note: 'gemini-2.5-flash' is the recommended model for free tier efficiency.
+```
+
+### Step 2: Run with Docker (Recommended)
+This command sets up the Database (Postgres + pgvector) and the Backend API automatically.
+```bash
+docker-compose up --build
+```
+> **Note on 429 Errors**: The application uses the Google Gemini Free Tier, which has strict rate limits (approx 15-20 requests/minute/day depending on the model). 
+> The application includes **Automatic Retry Logic** (backoff) to handle `429 RESOURCE_EXHAUSTED` errors. If you see delays, please be patient as the system is retrying.
+
+### Step 3: Test Functionality
+**Method A: Swagger UI (Easiest)**
+Navigate to: 👉 **[http://localhost:8000/docs](http://localhost:8000/docs)**
+
+**Method B: PowerShell / Terminal**
+1. **Upload Context** (Dummy file):
+   ```powershell
+   "This is a secret project." | Out-File secret.txt
+   curl -X POST "http://localhost:8000/api/upload" -F "file=@secret.txt" -F "session_id=review-session"
+   ```
+2. **Chat (RAG Test)**:
+   ```powershell
+   Invoke-RestMethod -Uri "http://localhost:8000/api/chat" -Method POST -ContentType "application/json" -Body '{"query": "What is the secret project?", "session_id": "review-session"}'
+   ```
+
+---
+
+## 🚀 Features & Bonus Points Implementation
+This project meets all requirements and includes the following **Bonus Features**:
+
+- ✅ **Descriptive Comments**: Every module, class, and critical function is documented with "Why" and "How" comments (see `app/services/chat_service.py`).
+- ✅ **Architecture Diagram**: Included in `architecture.mmd` (root directory).
+- ✅ **Docker Containerization**: Full `docker-compose.yml` setup for 1-command startup.
+- ✅ **Session Management**: All chats and documents are isolated by `session_id`.
+- ✅ **Retry Mechanism**: Robust handling of LLM Rate Limits (429).
+- ✅ **Configurable LLM**: Seamless switch between `openai` and `gemini` via `.env`.
+
+---
+
 ## 2. Architecture
 The system is built using:
 - **Backend Framework**: FastAPI (Async)
@@ -58,100 +114,28 @@ The system is built using:
 ### Architecture Diagram
 ![Architecture](architecture.mmd)
 
-## 3. Features
-- **Project Structure**: Clean, modular code organization.
-- **RAG Implementation**: Upload PDFs/Text files -> Chunking -> Embedding -> Vector Search.
-- **Session Management**: Each conversation is isolated by `session_id`.
-- **Memory**: Maintains conversation history + auto-updating summaries for infinite context.
-- **Configurable**: Switch LLMs via `.env`.
-- **Dockerized**: One-command startup.
+## 3. Local Setup (Manual / Non-Docker)
+If you cannot use Docker, follow these steps:
 
-## 4. Prerequisites
-- Docker & Docker Compose
-- API Key (Google AI Studio or OpenAI)
-
-## 5. Local Setup & Execution
-
-### Option A: Using Docker (Recommended)
-This is the easiest way to run the application as it handles the database and vector extension automatically.
-
-1. **Clone the repository**
-   ```bash
-   git clone <repo-url>
-   cd ATLANTIS
+1. **Install PostgreSQL 16** and enable `pgvector` extension.
+2. **Create Database**: `chatbot_db`
+3. **Update .env**:
+   ```ini
+   DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/chatbot_db
    ```
-
-2. **Configure Environment**
-   Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-   Open `.env` and add your API Keys:
-   ```env
-   LLM_PROVIDER=gemini
-   GOOGLE_API_KEY=your_google_api_key
-   ```
-
-3. **Start Application**
-   ```bash
-   docker-compose up --build
-   ```
-   - The backend will be available at: `http://localhost:8000`
-   - Swagger UI docs: `http://localhost:8000/docs`
-
-### Option B: Local Python Setup (Manual)
-If you prefer running Python locally (requires a running Postgres instance with pgvector).
-
-1. **Create Virtual Environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   ```
-
-2. **Install Dependencies**
+4. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-
-3. **Setup Database**
-   - Ensure PostgreSQL is running.
-   - Install `pgvector` extension in your database.
-   - Update `DATABASE_URL` in `.env`.
-
-4. **Run Server**
+5. **Run Server**:
    ```bash
    uvicorn app.main:app --reload
    ```
 
-## 6. API Usage Examples
+## 4. Troubleshooting
+- **429 RESOURCE_EXHAUSTED**: You hit the Google Free Tier quota. The app will auto-retry. If it persists, try switching to a paid key or OpenAI.
+- **pgvector not found**: Ensure you are using the `pgvector/pgvector:pg16` Docker image (configured in docker-compose.yml).
 
-### 1. Upload a Document
-**Endpoint**: `POST /api/upload`
-```bash
-curl -X POST "http://localhost:8000/api/upload" \
-     -H "accept: application/json" \
-     -H "Content-Type: multipart/form-data" \
-     -F "file=@/path/to/document.pdf" \
-     -F "session_id=user-session-123"
-```
-
-### 2. Chat with AI
-**Endpoint**: `POST /api/chat`
-```bash
-curl -X POST "http://localhost:8000/api/chat" \
-     -H "accept: application/json" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "query": "What does the uploaded document say about X?",
-       "session_id": "user-session-123"
-     }'
-```
-
-## 7. Troubleshooting
-
-- **Database Connection Error**: Ensure Docker is running. If running locally, check `DATABASE_URL`.
-- **pgvector Error**: Ensure the docker image usage `pgvector/pgvector:pg16`.
-- **LLM Error**: Verify your `GOOGLE_API_KEY` or `OPENAI_API_KEY` is correct in `.env`.
    *Note: This might take a few minutes for the first build.*
 
 4. **Verify Running**:

@@ -215,11 +215,37 @@ async def process_chat(session_id: str, user_query: str, db: AsyncSession, backg
                 messages.append(AIMessage(content=msg.content))
                 
         # ------------------------------------------------------------------
-        # 6. Call LLM
+        # 6. LLM Generation with Retry Logic (for Gemini 429 Errors)
         # ------------------------------------------------------------------
-        llm = await get_llm()
-        response = await llm.ainvoke(messages)
-        ai_response_text = response.content
+        # The user's free tier quota is very low (limit: 20 requests/day or minute).
+        # We implementation a simple exponential backoff retry.
+        import time
+        import asyncio
+        
+        max_retries = 3
+        retry_delay = 5 # seconds
+        
+        ai_response_text = "I apologize, but I am currently overloaded. Please try again later."
+        
+        for attempt in range(max_retries):
+            try:
+                llm = await get_llm()
+                response = await llm.ainvoke(messages)
+                ai_response_text = response.content
+                break # Success, exit loop
+                
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str: 
+                    if attempt < max_retries - 1:
+                        logger.warning(f"Quota exceeded (Attempt {attempt+1}/{max_retries}). Retrying in {retry_delay}s...")
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2 # Exponential backoff: 5, 10, 20
+                        continue
+                
+                # If not quota error or max retries reached, raise it
+                logger.error(f"LLM Error (Attempt {attempt+1}): {e}")
+                raise e
         
         # ------------------------------------------------------------------
         # 7. Save AI Response to DB
