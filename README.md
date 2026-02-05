@@ -173,42 +173,7 @@ Send a message. If you uploaded documents to the same `session_id`, the bot will
 }
 ```
 
-## Architecture
-
-The application follows a layered architecture (Service-Repository pattern).
-
-```mermaid
-graph TD
-    User[User/Client] -->|JSON Request| API[FastAPI Backend]
-    
-    subgraph "Application Layer"
-        API -->|/chat| ChatService[Chat Service]
-        API -->|/upload| FileService[File Service]
-        ChatService -->|Background Task| SummaryService[Summary Updater]
-    end
-    
-    subgraph "Data Layer"
-        ChatService -->|Store History| Messages[Message Table]
-        Messages -->|Indexed Access| ChatService
-        SummaryService -->|Update Summary| SessionTbl[Session Table]
-        FileService -->|Store Metadata| Documents[Document Table]
-        FileService -->|Store Embeddings| VectorStore[DocumentChunk Table]
-        ChatService -->|Vector Search| VectorStore
-    end
-    
-    subgraph "External Services"
-        ChatService -->|Completion| LLM[LLM (OpenAI)]
-        SummaryService -->|Summarization| LLM
-        FileService -->|Embeddings| LLM
-    end
-```
-
-## Future Optimizations
+## 7. Future Optimizations
 
 - **Redis Caching**: Introduce Redis to cache frequent session summaries or recent messages for extremely high-throughput environments.
 - **Asynchronous Processing Queue**: For very large file uploads, offload processing to a dedicated worker queue (e.g., Celery) to avoid holding HTTP connections.
-
-## Troubleshooting
-
-- **Database Connection Error**: Ensure the `db` container is healthy. The backend waits for it, but if it fails, check `docker-compose logs db`.
-- **OpenAI Error**: Ensure your API key is correct in `.env`.
